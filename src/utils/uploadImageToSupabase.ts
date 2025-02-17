@@ -1,79 +1,84 @@
-// import { createClient } from "@supabase/supabase-js";
-// import fetch from "node-fetch";
-// import path from "path";
-// import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
+import fetch from "node-fetch";
+import path from "path";
+import dotenv from "dotenv";
+import { logInfo, logWarn, logError } from "./log";
 
-// dotenv.config();
+dotenv.config();
 
-// const supabase = createClient(
-//   process.env.SUPABASE_URL!,
-//   process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role key for uploads
-// );
+// ✅ Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role key for uploads
+);
 
-// /**
-//  * Uploads an image to Supabase Storage and returns the new URL.
-//  * @param {string} imageUrl - The Discogs image URL
-//  * @param {number} releaseId - The release ID for naming the file
-//  * @returns {Promise<string | null>} - The Supabase image URL or null if failed
-//  */
-// export async function uploadImageToSupabase(
-//   imageUrl: string,
-//   releaseId: number
-// ): Promise<string | null> {
-//   try {
-//     console.log(`📡 Downloading image for release ${releaseId}...`);
+const STORAGE_BUCKET = "record-images"; // ✅ Ensure bucket name is correct
+const SUPABASE_STORAGE_URL = `${process.env.SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/covers/`;
 
-//     // Fetch the image from Discogs
-//     const response = await fetch(imageUrl);
-//     if (!response.ok)
-//       throw new Error(`Failed to fetch image: ${response.statusText}`);
+/**
+ * Uploads an image to Supabase Storage and returns the new URL.
+ * @param {string} imageUrl - The Discogs image URL
+ * @param {number} releaseId - The release ID for naming the file
+ * @returns {Promise<string | null>} - The Supabase image URL or null if failed
+ */
+export async function uploadImageToSupabase(
+  imageUrl: string,
+  releaseId: number
+): Promise<string | null> {
+  try {
+    logInfo(`📡 Downloading image for release ${releaseId}...`);
 
-//     const imageBuffer = await response.arrayBuffer();
+    // ✅ Fetch the image from Discogs
+    const response = await fetch(imageUrl);
+    if (!response.ok)
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
 
-//     // ✅ Ensure file extension is .jpeg for consistency
-//     let extension = path.extname(imageUrl);
-//     if (!extension || extension === ".jpg") extension = ".jpeg";
+    const imageBuffer = await response.arrayBuffer();
 
-//     const filePath = `covers/${releaseId}${extension}`; // Store in 'covers/' folder
+    // ✅ Ensure file extension is `.jpeg`
+    let extension = path.extname(new URL(imageUrl).pathname);
+    if (!extension || extension === ".jpg") extension = ".jpeg"; // Standardize to `.jpeg`
 
-//     // ✅ Check if the image already exists in Supabase Storage
-//     const { data: existingFiles, error: fileCheckError } =
-//       await supabase.storage.from("record-images").list("covers");
+    const filePath = `covers/${releaseId}${extension}`;
 
-//     if (fileCheckError) {
-//       console.error(
-//         `❌ Error checking existing file for release ${releaseId}:`,
-//         fileCheckError
-//       );
-//       return null;
-//     }
+    // ✅ Check if the image already exists in Supabase Storage
+    const { data: existingFiles, error: fileCheckError } =
+      await supabase.storage.from(STORAGE_BUCKET).list("covers");
 
-//     const fileExists = existingFiles.some(
-//       (file) => file.name === `${releaseId}${extension}`
-//     );
-//     if (fileExists) {
-//       console.log(
-//         `✅ Image already exists for release ${releaseId}, skipping upload.`
-//       );
-//       return `${process.env.SUPABASE_URL}/storage/v1/object/public/record-images/${filePath}`;
-//     }
+    if (fileCheckError) {
+      logError(
+        `❌ Error checking existing file for release ${releaseId}:`,
+        fileCheckError
+      );
+      return null;
+    }
 
-//     // ✅ Upload the image to Supabase
-//     const { error } = await supabase.storage
-//       .from("record-images")
-//       .upload(filePath, imageBuffer, {
-//         contentType: response.headers.get("content-type") || "image/jpeg",
-//         upsert: true, // Overwrite existing images if needed
-//       });
+    const fileExists = existingFiles.some(
+      (file) => file.name === `${releaseId}${extension}`
+    );
+    if (fileExists) {
+      logInfo(
+        `✅ Image already exists for release ${releaseId}, skipping upload.`
+      );
+      return `${SUPABASE_STORAGE_URL}${releaseId}${extension}`;
+    }
 
-//     if (error) throw error;
+    // ✅ Upload the image to Supabase
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(filePath, imageBuffer, {
+        contentType: response.headers.get("content-type") || "image/jpeg",
+        upsert: true, // Overwrite existing images if needed
+      });
 
-//     // ✅ Generate and return the public URL for the uploaded image
-//     const publicURL = `${process.env.SUPABASE_URL}/storage/v1/object/public/record-images/${filePath}`;
-//     console.log(`✅ Image uploaded successfully: ${publicURL}`);
-//     return publicURL;
-//   } catch (error) {
-//     console.error(`❌ Image upload failed for ${releaseId}:`, error);
-//     return null;
-//   }
-// }
+    if (error) throw error;
+
+    // ✅ Generate and return the public URL for the uploaded image
+    const publicURL = `${SUPABASE_STORAGE_URL}${releaseId}${extension}`;
+    logInfo(`✅ Image uploaded successfully: ${publicURL}`);
+    return publicURL;
+  } catch (error) {
+    logError(`❌ Image upload failed for ${releaseId}:`, error);
+    return null;
+  }
+}
