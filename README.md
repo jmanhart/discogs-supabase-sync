@@ -121,20 +121,29 @@ record-sync/
 
 ---
 
-## **📌 Example API Response**
+## **Creating a table in Supabase**
 
-```json
-[
-  {
-    "release_id": 24104555,
-    "title": "Abbey Road",
-    "artist": "The Beatles",
-    "supabase_image_url": "https://your-supabase-project.supabase.co/storage/v1/object/public/record-images/covers/24104555.jpg"
-  }
-]
+```sql
+CREATE TABLE public.records (
+    id SERIAL PRIMARY KEY,
+    release_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    artist TEXT NOT NULL,
+    image_url TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    supabase_image_url TEXT
+);
 ```
 
----
+Explanation of Columns:
+
+- `id SERIAL PRIMARY KEY` → Auto-incrementing unique ID for each record.
+- `release_id TEXT NOT NULL` → The Discogs release ID.
+- `title TEXT NOT NULL` → Album title.
+- `artist TEXT NOT NULL` → Artist name.
+- `image_url TEXT` → URL to the album cover from Discogs.
+- `created_at TIMESTAMP DEFAULT NOW()` → Timestamp when the record was added.
+- `supabase_image_url TEXT` → URL of the image stored in Supabase (if applicable).
 
 ## **🛠️ Troubleshooting**
 
