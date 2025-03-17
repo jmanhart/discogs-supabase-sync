@@ -1,19 +1,13 @@
-import { fetchDiscogsRecords } from "./fetchDiscogs";
-import { updateSupabaseRecords } from "./updateSupabase";
-import { logInfo, logError } from "./log";
+import { fetchDiscogsRecords } from "./utils/fetchDiscogs.js";
+import { updateSupabaseRecords } from "./utils/updateSupabase.js";
+import { logInfo, logError } from "./utils/log.js";
 
 async function main() {
   try {
     logInfo("🚀 Starting Discogs-to-Supabase sync...");
 
     // ✅ Fetch records from Discogs
-    const records = await fetchDiscogsRecords();
-
-    // ✅ Validate response
-    if (!records || !Array.isArray(records)) {
-      logError("❌ Records input is invalid or not an array", { records });
-      return;
-    }
+    const records: any[] = (await fetchDiscogsRecords()) || [];
 
     logInfo(`📊 Fetched ${records.length} records from Discogs.`);
 
@@ -31,6 +25,6 @@ async function main() {
 }
 
 // ✅ Ensure the script runs only when executed directly
-if (require.main === module) {
+if (import.meta.url === new URL(process.argv[1], "file:").href) {
   main();
 }

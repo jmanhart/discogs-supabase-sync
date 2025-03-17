@@ -1,9 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import { downloadImages } from "./downloadImages"; // Import image handling
-import { uploadImageToSupabase } from "./uploadImageToSupabase"; // Import image uploader
-import { logInfo, logWarn, logError } from "./log";
+import { downloadImages } from "./downloadImages.js"; // Import image handling
+import { uploadImageToSupabase } from "./uploadImageToSupabase.js"; // Import image uploader
+import { logInfo, logWarn, logError } from "./log.js";
 
 dotenv.config();
 
@@ -19,8 +19,9 @@ const DISCOGS_COLLECTION_URL = `https://api.discogs.com/users/${DISCOGS_USER}/co
 
 /**
  * Fetch all records from Discogs API, handling pagination.
+ * @returns Promise<any[]> Array of Discogs records
  */
-export async function fetchDiscogsRecords() {
+export async function fetchDiscogsRecords(): Promise<any[]> {
   try {
     logInfo("📡 Fetching all records from Discogs API...");
 
@@ -75,7 +76,7 @@ export async function fetchDiscogsRecords() {
       logInfo(
         "✅ No new records to add and no missing images to fix. Everything is already up-to-date."
       );
-      return;
+      return [];
     }
 
     logInfo(`🆕 Found ${newRecords.length} new records.`);
@@ -143,7 +144,10 @@ export async function fetchDiscogsRecords() {
       if (upsertError) throw upsertError;
       logInfo("✅ Successfully updated Supabase with new records.");
     }
+
+    return allRecords;
   } catch (error) {
     logError("❌ Error in fetchDiscogsRecords", error);
+    return [];
   }
 }

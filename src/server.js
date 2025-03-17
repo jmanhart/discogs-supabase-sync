@@ -7,13 +7,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Supabase setup
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
-);
+// Ensure environment variables exist
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-// ✅ API Route to Get Records
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error("❌ Missing Supabase environment variables!");
+  process.exit(1); // Stop the server if env variables are missing
+}
+
+// ✅ Initialize Supabase client
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ✅ API Route to Fetch Records
 app.get("/api/records", async (req, res) => {
   try {
     console.log("📡 Fetching records from Supabase...");
